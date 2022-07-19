@@ -36,22 +36,35 @@ import java.util.stream.Collectors;
 
 public final class GeyserDamageTooltipFix extends JavaPlugin {
 
-	private final NamespacedKey loreKey = new NamespacedKey(this, "lore_index");
-
 	private GeyserApiBase api;
 	private String lore;
 
-	private boolean isCombatUpdate;
-
 	public void onEnable() {
-		api = Geyser.api();
+		// Check if the server is Minecraft 1.18.2+
+		String version = getServer().getClass().getPackage().getName().split("\\.")[3];
+
+		String[] parts = version.split("_");
 
 		try {
-			Material.valueOf("ELYTRA");
-			isCombatUpdate = true;
+			int minorVersion = Integer.parseInt(parts[1]);
+
+			if(minorVersion < 18)
+				throw new Exception();
+
+			if(minorVersion == 18) {
+				if(Integer.parseInt(parts[2]) != 2)
+					throw new Exception();
+			}
 		} catch(Exception e) {
-			isCombatUpdate = false;
+			getLogger().severe("*************************");
+			getLogger().severe("This plugins requires Minecraft 1.18.2+!");
+			getLogger().severe("Disabling plugin...");
+			getLogger().severe("*************************");
+			getServer().getPluginManager().disablePlugin(this);
+			return;
 		}
+
+		api = Geyser.api();
 
 		val reloadCommand = getCommand("reloaddamagetooltipfix");
 		reloadCommand.setTabCompleter((sender, cmd, label, args) -> Collections.emptyList());
@@ -97,6 +110,9 @@ public final class GeyserDamageTooltipFix extends JavaPlugin {
 	}
 
 	private final class PacketListener extends PacketAdapter {
+		private final NamespacedKey loreKey = new NamespacedKey(
+				GeyserDamageTooltipFix.this, "lore_index");
+
 		private PacketListener() {
 			super(
 					GeyserDamageTooltipFix.this,
@@ -139,17 +155,20 @@ public final class GeyserDamageTooltipFix extends JavaPlugin {
 
 			if(meta == null)
 				return item;
-			if(item.getType().name().contains("SWORD") &&
-					(!isCombatUpdate || !meta.hasEnchant(Enchantment.DAMAGE_ALL)))
-				return item;
+
+			String itemName = item.getType().name();
+
+			if(itemName.contains("SWORD")) {
+				if(!meta.hasEnchant(Enchantment.DAMAGE_ALL))
+					return item;
+			}
 
 			double damage = getDamage(item);
-			if(damage == -1)
-				return item; // item is not a tool
 
-			List<String> newLore =
-					Optional.ofNullable(meta.getLore())
-							.orElseGet(ArrayList::new);
+			if(damage == -1)
+				return item;
+
+			List<String> newLore = Optional.ofNullable(meta.getLore()).orElseGet(ArrayList::new);
 
 			meta.getPersistentDataContainer().set(
 					loreKey,
@@ -170,6 +189,8 @@ public final class GeyserDamageTooltipFix extends JavaPlugin {
 		private double getDamage(ItemStack item) {
 			Material type = item.getType();
 
+			String itemName = type.name();
+
 			Multimap<Attribute, AttributeModifier> map = type.getDefaultAttributeModifiers(EquipmentSlot.HAND);
 
 			for(Map.Entry<Attribute, AttributeModifier> entry : map.entries()) {
@@ -186,11 +207,15 @@ public final class GeyserDamageTooltipFix extends JavaPlugin {
 					if(sharpnessLevel == 0)
 						return baseDamage;
 
-					if(isCombatUpdate) {
-						return baseDamage + (sharpnessLevel * .5 + .5);
-					} else {
-						return baseDamage + (sharpnessLevel * 1.25);
+					double result = baseDamage + (sharpnessLevel * .5 + .5);
+
+					if(result == Math.floor(baseDamage + (sharpnessLevel * 1.25))
+							&& itemName.contains("SWORD")) {
+						// Same as bedrock
+						return -1;
 					}
+
+					return result;
 				}
 			}
 
@@ -224,6 +249,8 @@ public final class GeyserDamageTooltipFix extends JavaPlugin {
 			lore.remove(index);
 			meta.setLore(lore);
 			item.setItemMeta(meta);
+
+			packet.getItemModifier().write(0, item);
 		}
 	}
 }
