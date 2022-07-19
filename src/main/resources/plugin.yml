@@ -4,7 +4,7 @@ main: me.jacob.damagetooltipfix.GeyserDamageTooltipFix
 author: Jacob
 description: Fixes the damage tooltip for Bedrock players on a Java server using Geyser
 depend: [Geyser-Spigot, ProtocolLib]
-api-version: 1.19
+api-version: 1.18
 
 commands:
   reloaddamagetooltipfix:
