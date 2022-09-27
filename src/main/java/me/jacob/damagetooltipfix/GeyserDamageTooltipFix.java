@@ -23,8 +23,7 @@ import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
-import org.geysermc.api.Geyser;
-import org.geysermc.api.GeyserApiBase;
+import org.geysermc.floodgate.api.FloodgateApi;
 
 import java.text.DecimalFormat;
 import java.util.ArrayList;
@@ -36,7 +35,6 @@ import java.util.stream.Collectors;
 
 public final class GeyserDamageTooltipFix extends JavaPlugin {
 
-	private GeyserApiBase api;
 	private String lore;
 
 	public void onEnable() {
@@ -63,8 +61,6 @@ public final class GeyserDamageTooltipFix extends JavaPlugin {
 			getServer().getPluginManager().disablePlugin(this);
 			return;
 		}
-
-		api = Geyser.api();
 
 		val reloadCommand = getCommand("reloaddamagetooltipfix");
 		reloadCommand.setTabCompleter((sender, cmd, label, args) -> Collections.emptyList());
@@ -123,7 +119,7 @@ public final class GeyserDamageTooltipFix extends JavaPlugin {
 		public void onPacketSending(PacketEvent event) {
 			val player = event.getPlayer();
 
-			if(api.connectionByUuid(player.getUniqueId()) == null) {
+			if(!FloodgateApi.getInstance().isFloodgatePlayer(player.getUniqueId())) {
 				// Java player
 				return;
 			}

@@ -3,7 +3,7 @@ version: '${project.version}'
 main: me.jacob.damagetooltipfix.GeyserDamageTooltipFix
 author: Jacob
 description: Fixes the damage tooltip for Bedrock players on a Java server using Geyser
-depend: [Geyser-Spigot, ProtocolLib]
+depend: [floodgate, ProtocolLib]
 api-version: 1.18
 
 commands:
